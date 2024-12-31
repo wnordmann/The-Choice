@@ -1,5 +1,5 @@
 function buildCases(numberOfValues, maxValue) {
-    const linearValues = generateCustomValues(maxValue, numberOfValues, customDistributionLower);
+    const linearValues = generateCustomValues(maxValue, numberOfValues, agressiveDistribution);
     return linearValues;
 }
 
@@ -12,8 +12,9 @@ function generateCustomValues(maxValue, numberOfValues, distribution) {
         console.warn("numberOfValues is greater than maxValue. Some values will be repeated")
     }
   
-    const values = [];
+    const values = {};
     const bottomQuater = maxValue * .25 
+    const shuffleOrder = generateShuffledOrder(numberOfValues);
     for (let i = 0; i < numberOfValues; i++) {
       let progress = i / (numberOfValues - 1); // Normalized progress (0 to 1)
   
@@ -23,10 +24,13 @@ function generateCustomValues(maxValue, numberOfValues, distribution) {
       if (value > bottomQuater ){
         value = Math.round(value / 5) * 5; // Round to multiple of 5
       }
-      values.push(Math.round(value));
+    //   value = values.indexOf(value) > 0 ? value + 1 : value // avoid dups
+      value = value < 1 ? 1 : value;  // no 0
+    //   values.push(Math.round(value));
+      values[i] = {value: Math.round(value), order: shuffleOrder[i], selected:false, open:false}
     }
-  
-    return values.sort((a,b) => b - a); //Sorts the array from largest to smallest
+    console.log(values);
+    return values;
   }
   
   // Example distributions:
@@ -48,32 +52,32 @@ function generateCustomValues(maxValue, numberOfValues, distribution) {
       return 0.2 + ((progress - 0.6) * -0.5)
   }
 
-  const customDistributionLower = (progress) => {
-    if (progress < 0.2) return 1 - (progress * 0.5); //First 20% same as before
-    if (progress < 0.35) return 0.9 - ((progress - 0.2) * 3.33); //Steeper decline
+  const agressiveDistribution = (progress) => {
+    if (progress < 0.1) return 1 - (progress * 0.99); //First 10% fast
+    if (progress < 0.2) return 1 - (progress * 0.75); //First 20% 
+    if (progress < 0.35) return 0.9 - ((progress - 0.2) * 3.5); //Steeper decline
     if (progress < 0.6) return 0.4 + ((progress - 0.35) * -1.6); //More gradual decline
     return 0.05 + ((progress - 0.6) * -0.125); //Even more gradual decline
 };
 
+function generateShuffledOrder(length) {
+    if (length <= 0) {
+      return [];
+    }
+  
+    const array = Array.from({ length }, (_, i) => i + 1); // Create array 1...length
+    let currentIndex = array.length, randomIndex;
+  
+    while (currentIndex != 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+  
+    return array;
+  }
 
 export default buildCases;
 
-  // Example usage:
-//   const maxValue = 250;
-//   const numberOfValues = 20;
-  
-//   const linearValues = generateCustomValues(maxValue, numberOfValues, linearDistribution);
-//   console.log("Linear:", linearValues);
-  
-//   const skewedValues = generateCustomValues(maxValue, numberOfValues, skewedDistribution);
-//   console.log("Skewed:", skewedValues);
-  
-//   const inverseSkewedValues = generateCustomValues(maxValue, numberOfValues, inverseSkewedDistribution);
-//   console.log("Inverse Skewed:", inverseSkewedValues);
-  
-//   const customValues = generateCustomValues(maxValue, numberOfValues, customDistribution);
-//   console.log("Custom:", customValues);
-  
-//   const customValues2 = generateCustomValues(250, 4, customDistribution);
-//   console.log("Custom 2:", customValues2);
 
