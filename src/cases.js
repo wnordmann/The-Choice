@@ -12,7 +12,7 @@ function generateCustomValues(maxValue, numberOfValues, distribution) {
         console.warn("numberOfValues is greater than maxValue. Some values will be repeated")
     }
   
-    const values = {};
+    const values = [];
     const bottomQuater = maxValue * .25 
     const shuffleOrder = generateShuffledOrder(numberOfValues);
     for (let i = 0; i < numberOfValues; i++) {
@@ -26,11 +26,13 @@ function generateCustomValues(maxValue, numberOfValues, distribution) {
       }
     //   value = values.indexOf(value) > 0 ? value + 1 : value // avoid dups
       value = value < 1 ? 1 : value;  // no 0
-    //   values.push(Math.round(value));
-      values[i] = {value: Math.round(value), order: shuffleOrder[i], selected:false, open:false}
+      values.push(Math.round(value));
     }
-    console.log(values);
-    return values;
+    const retValues = {}
+    for (let i = 0; i < numberOfValues; i++) {
+        retValues[shuffleOrder[i]] = {cashValue: values[i], selected:false, open:false}
+    }
+    return retValues;
   }
   
   // Example distributions:
