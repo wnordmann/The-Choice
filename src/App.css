@@ -40,3 +40,19 @@
 .read-the-docs {
   color: #888;
 }
+
+.cases-panel {
+  width: 200px; /* Adjust width as needed */
+  overflow: hidden; /* Hide overflow to prevent scrolling */
+}
+
+.cases-panel .list-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns */
+    grid-gap: 5px; /* Adjust gap as needed */
+    width: 100%;
+}
+
+.cases-panel .list-group-item {
+    text-align: center;
+}

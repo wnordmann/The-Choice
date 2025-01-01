@@ -24,7 +24,8 @@ function generateCustomValues(maxValue, numberOfValues, distribution) {
       if (value > bottomQuater ){
         value = Math.round(value / 5) * 5; // Round to multiple of 5
       }
-    //   value = values.indexOf(value) > 0 ? value + 1 : value // avoid dups
+      value = values.indexOf(value) > 0 ? value + 1 : value // avoid dups - not perfect
+      
       value = value < 1 ? 1 : value;  // no 0
       values.push(Math.round(value));
     }

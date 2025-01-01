@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import buildCases from './cases';
 import DisplayCase from './caseComponent'
+import DisplayCaseValues from './caseValueComponent';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 function App() {
   const [prizeAmount, setPrizeAmount] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -67,7 +70,9 @@ function App() {
       <p>Prize Amount: {prizeAmount}</p>
       <p>Number of Rounds: {numberRounds}</p>
       <p>Number of Cases: {numberCases}</p>
+      <DisplayCaseValues cases={cases}></DisplayCaseValues>
       <DisplayCase cases={cases}></DisplayCase>
+
     </div>
   );
 }
