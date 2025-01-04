@@ -15,15 +15,13 @@ function DisplayCaseValues({ cases }) {
     const numericalKeys = sortedKeys.map(Number)
         
     return( 
-      <div className="cases-panel"> {/* Apply the CSS class */}
-        <ListGroup>
-          {numericalKeys.map((key) => (
-            <ListGroup.Item key={key} className="case-item">
-              {cases[key].cashValue}
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
-      </div>
+      <ListGroup>
+        {numericalKeys.map((key) => (
+          <ListGroup.Item key={key} className="case-item">
+            ${cases[key].cashValue}
+          </ListGroup.Item>
+        ))}
+      </ListGroup>
     )
   }
 export default DisplayCaseValues;
