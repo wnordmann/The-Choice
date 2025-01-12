@@ -73,9 +73,14 @@ function App() {
     setCases(buildCases(numberCases, prizeAmount));
   };
   const folderName = "elf";
-  const subFolderName = getRandomIntInclusiveAsString(1,24);
-  const imageFile = imageData[folderName][subFolderName][2].name
-
+  const subFolderName = getRandomIntInclusiveAsString(1,20);
+  const imageFile = imageData[folderName][subFolderName][2]
+  const images = [];
+  for (let i = 1; i <= 24; i++) {
+    const randomIndex = getRandomIntInclusiveAsString(0,19);
+    const imagesName = imageData[folderName][i.toString()][randomIndex];
+    images.push(`public/images/${folderName}/${i}/${imagesName.name}`);
+  }
   return (
     <Container fluid> {/* fluid makes it full width */}
       <Row>
@@ -87,12 +92,16 @@ function App() {
         <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
           <DisplayCaseValues cases={cases}></DisplayCaseValues>
         </Col>
-        <Col md={9} className="main-content"> {/* Main content occupies 9/12 columns */}
-          {/* Your main content goes here */}
-          <h1>Main Content</h1>
-          <p>This is the main content area.</p>
-          <img src={`/images/${folderName}/${subFolderName}/${imageFile}`} alt="elf"/>
-        </Col>
+        <Col md={9} className="main-content"> 
+          <div className="image-grid"> {/* Container for the grid */}
+            {images.map((image, index) => (
+                <div key={index} className="image-item"> 
+                  <img src={image} alt={image} />
+                </div>
+              ))}
+            </div>
+          </Col>
+          {/* <img src={`/images/${folderName}/${subFolderName}/${imageFile}`} alt="elf"/> */}
       </Row>
     </Container>
   );
