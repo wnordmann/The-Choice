@@ -7,6 +7,7 @@ import buildCases from './cases';
 import DisplayCase from './caseComponent'
 import DisplayCaseValues from './caseValueComponent';import './App.css'; // Import the CSS file
 import imageData from './data/output.json'
+import AnimatedText from './AnimatedText/'; // Import the component
 
 function getRandomIntInclusiveAsString(min, max) {
   min = Math.ceil(min);
@@ -77,21 +78,17 @@ function App() {
     setCases(buildCases(numberCases, prizeAmount));
   };
 
-  const handleNumberRoundsChange = (event) => {
-    setNumberRounds(event.target.value);
-  };
-
-  const handleNumberOfCasesChange = (event) => {
-    setNumberCases(event.target.value);
-    setCases(buildCases(numberCases, prizeAmount));
-  };
+  function handleImageClick(index) {
+    console.log(`Image at index ${index} was clicked!`);
+    // Your logic for handling the click event based on the index
+  }
 
   return (
     <div className="my-custom-container">
+      <AnimatedText />
       <Container fluid >
         <Row>
           <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
-          <input type="number" value={numberRounds} onChange={handleNumberRoundsChange} placeholder="Number of Rounds" />
         </Row>
         <Row>
           <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
@@ -100,7 +97,7 @@ function App() {
           <Col md={9} className="main-content"> 
             <div className="image-grid"> {/* Container for the grid */}
               {images.map((image, index) => (
-                  <div key={index} className="image-item"> 
+                  <div key={index} className="image-item" onClick={() => handleImageClick(index)}>
                     <img src={image} alt={image} />
                   </div>
                 ))}
