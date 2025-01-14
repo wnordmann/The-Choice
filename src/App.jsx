@@ -79,9 +79,11 @@ function App() {
   };
 
   function handleImageClick(index) {
-    console.log(`Image at index ${index} was clicked!`);
-    // Your logic for handling the click event based on the index
-  }
+    const newCases = {...cases};
+    newCases[index + 1].selected = true;
+    setCases(newCases);
+  };
+ 
 
   return (
     <div className="my-custom-container">
@@ -97,8 +99,8 @@ function App() {
           <Col md={9} className="main-content"> 
             <div className="image-grid"> {/* Container for the grid */}
               {images.map((image, index) => (
-                  <div key={index} className="image-item" onClick={() => handleImageClick(index)}>
-                    <img src={image} alt={image} />
+                  <div key={index} className={`image-item ${cases[index+1]?.selected ? 'picked' : ''}`} onClick={() => handleImageClick(index)}>
+                      <img src={image} alt={image} />
                   </div>
                 ))}
               </div>
