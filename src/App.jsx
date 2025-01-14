@@ -49,6 +49,18 @@ function App() {
     return {};
   });
 
+  const buildImageArray = () => {
+    const images = [];
+    for (let i = 1; i <= 24; i++) {
+      const randomIndex = getRandomIntInclusiveAsString(0,19);
+      const imagesName = imageData.elf[i.toString()][randomIndex];
+      images.push(`public/images/elf/${i}/${imagesName.name}`);
+    }
+    return images;
+  }
+
+  const [images, setImages] = useState(buildImageArray);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -57,6 +69,7 @@ function App() {
       localStorage.setItem('numberCases', JSON.stringify(numberCases));
       localStorage.setItem('cases', JSON.stringify(cases));
     }
+    setCases(buildCases(numberCases, prizeAmount));
   }, [prizeAmount, numberRounds, numberCases]);
 
   const handlePrizeAmountChange = (event) => {
@@ -72,38 +85,30 @@ function App() {
     setNumberCases(event.target.value);
     setCases(buildCases(numberCases, prizeAmount));
   };
-  const folderName = "elf";
-  const subFolderName = getRandomIntInclusiveAsString(1,20);
-  const imageFile = imageData[folderName][subFolderName][2]
-  const images = [];
-  for (let i = 1; i <= 24; i++) {
-    const randomIndex = getRandomIntInclusiveAsString(0,19);
-    const imagesName = imageData[folderName][i.toString()][randomIndex];
-    images.push(`public/images/${folderName}/${i}/${imagesName.name}`);
-  }
+
   return (
-    <Container fluid> {/* fluid makes it full width */}
-      <Row>
-        <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
-        <input type="number" value={numberRounds} onChange={handleNumberRoundsChange} placeholder="Number of Rounds" />
-        <input type="number" value={numberCases} onChange={handleNumberOfCasesChange} placeholder="numberOfCases" />
-      </Row>
-      <Row>
-        <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
-          <DisplayCaseValues cases={cases}></DisplayCaseValues>
-        </Col>
-        <Col md={9} className="main-content"> 
-          <div className="image-grid"> {/* Container for the grid */}
-            {images.map((image, index) => (
-                <div key={index} className="image-item"> 
-                  <img src={image} alt={image} />
-                </div>
-              ))}
-            </div>
+    <div className="my-custom-container">
+      <Container fluid >
+        <Row>
+          <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
+          <input type="number" value={numberRounds} onChange={handleNumberRoundsChange} placeholder="Number of Rounds" />
+        </Row>
+        <Row>
+          <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
+            <DisplayCaseValues cases={cases}></DisplayCaseValues>
           </Col>
-          {/* <img src={`/images/${folderName}/${subFolderName}/${imageFile}`} alt="elf"/> */}
-      </Row>
-    </Container>
+          <Col md={9} className="main-content"> 
+            <div className="image-grid"> {/* Container for the grid */}
+              {images.map((image, index) => (
+                  <div key={index} className="image-item"> 
+                    <img src={image} alt={image} />
+                  </div>
+                ))}
+              </div>
+            </Col>
+        </Row>
+      </Container>
+    </div>
   );
 }
 
