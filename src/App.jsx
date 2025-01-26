@@ -55,7 +55,7 @@ function App() {
     for (let i = 1; i <= 24; i++) {
       const randomIndex = getRandomIntInclusiveAsString(0,19);
       const imagesName = imageData.elf[i.toString()][randomIndex];
-      images.push(`public/images/elf/${i}/${imagesName.name}`);
+      images.push(`/images/elf/${i}/${imagesName.name}`);
     }
     return images;
   }
