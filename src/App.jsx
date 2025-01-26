@@ -86,28 +86,36 @@ function App() {
  
 
   return (
-    <div className="my-custom-container">
+    <div className="container">
+      {/* <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" /> */}
       <AnimatedText />
-      <Container fluid >
-        <Row>
-          <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
-        </Row>
-        <Row>
-          <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
-            <DisplayCaseValues cases={cases}></DisplayCaseValues>
-          </Col>
-          <Col md={9} className="main-content"> 
-            <div className="image-grid"> {/* Container for the grid */}
-              {images.map((image, index) => (
-                  <div key={index} className={`image-item ${cases[index+1]?.selected ? 'picked' : ''}`} onClick={() => handleImageClick(index)}>
-                      <img src={image} alt={image} />
-                  </div>
-                ))}
-              </div>
-            </Col>
-        </Row>
-      </Container>
+      {/* Small Column */}
+      <div className="column small">
+        <DisplayCaseValues cases={cases}></DisplayCaseValues>
+      </div>
+      {/* Large Column */}
+      <div className="column large">
+        <div className="image-grid">
+        {images.map((image, index) => (
+          <div key={index} className={`image-item ${cases[index+1]?.selected ? 'picked' : ''}`} onClick={() => handleImageClick(index)}>
+            <img src={image} alt={image} />
+          </div>))}
+        </div>
+      </div>
+
+      {/* Medium Column */}
+      <div className="column medium">
+        <div className="text">
+          <h2>Some Text at the Top</h2>
+          <p>This is an example of text content.</p>
+        </div>
+        <div className="images">
+          <img src="https://via.placeholder.com/100?text=Image+A" alt="Image A" />
+          <img src="https://via.placeholder.com/100?text=Image+B" alt="Image B" />
+        </div>
+      </div>
     </div>
+
   );
 }
 
