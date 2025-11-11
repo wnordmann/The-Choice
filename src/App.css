@@ -139,6 +139,12 @@
   cursor: not-allowed;
 }
 
+.banker-quip {
+  margin-top: 6px;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
 .offer-announce {
   background: #1f2937;
   color: #f3f4f6;

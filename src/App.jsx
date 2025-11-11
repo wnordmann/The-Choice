@@ -8,6 +8,7 @@ import DisplayCase from './caseComponent'
 import DisplayCaseValues from './caseValueComponent';
 import './App.css'; // Import the CSS file
 import imageData from './data/output.json'
+import bankerQuips from './data/banker-quips.json'
 // Removed AnimatedText overlay per new UX
 
 function getRandomIntInclusiveAsString(min, max) {
@@ -78,6 +79,7 @@ function App() {
   const [winAmount, setWinAmount] = useState(null);
   const [offerHistory, setOfferHistory] = useState([]);
   const [keptCaseValue, setKeptCaseValue] = useState(null);
+  const [bankerQuip, setBankerQuip] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -117,10 +119,35 @@ function App() {
       setOfferHistory((prev) => {
         const r = roundIndex + 1;
         if (prev.some((h) => h.round === r)) return prev;
+        const previousOffer = prev.length ? prev[prev.length - 1].offer : null;
+        const quip = pickBankerQuip(previousOffer, bankerOffer);
+        setBankerQuip(quip);
         return [...prev, { round: r, offer: bankerOffer }];
       });
     }
   }, [atOffer, bankerOffer, roundIndex]);
+
+  // Quip generator based on offer change
+  const pickBankerQuip = (prev, current) => {
+    const get = (key) => {
+      const arr = bankerQuips?.[key];
+      if (Array.isArray(arr) && arr.length) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+      return '';
+    };
+
+    if (prev == null || !prev || prev <= 0) {
+      return get('neutral');
+    }
+    const delta = current - prev;
+    const pct = delta / prev;
+    if (pct >= 0.25) return get('big_win_for_player');
+    if (pct > 0.02) return get('small_win_for_player');
+    if (pct <= -0.25) return get('big_loss_for_player');
+    if (pct < -0.02) return get('small_loss_for_player');
+    return get('neutral');
+  };
 
   const handlePrizeAmountChange = (event) => {
     setPrizeAmount(event.target.value);
@@ -141,8 +168,12 @@ function App() {
 
     const totalValue = remainingCases.reduce((sum, caseData) => sum + caseData.cashValue, 0);
     const averageValue = totalValue / remainingCases.length;
-    const tension = 0.4 + 0.6 * (1 - remainingCases.length / caseEntries.length);
-    const offer = Math.round(averageValue * tension);
+    const progress = 1 - remainingCases.length / caseEntries.length; // 0 (start) -> 1 (end)
+    const tension = 0.4 + 0.6 * progress;
+    // Add a small random jitter that grows slightly as the game progresses
+    const variance = 0.08 + 0.12 * progress; // ~8% to 20%
+    const jitter = 1 + (Math.random() * 2 * variance - variance);
+    const offer = Math.max(1, Math.round(averageValue * tension * jitter));
     setBankerOffer(offer);
   };
 
@@ -181,6 +212,12 @@ function App() {
       setGameOver(true);
       setWinAmount(playerCase.cashValue);
       setKeptCaseValue(playerCase.cashValue);
+      // Add banker quip comparing last offer to final case value
+      const lastOffer = offerHistory.length ? offerHistory[offerHistory.length - 1].offer : null;
+      try {
+        const quip = pickBankerQuip(lastOffer, playerCase.cashValue);
+        setBankerQuip(quip);
+      } catch (_e) {}
       return;
     }
 
@@ -231,6 +268,7 @@ function App() {
     setRoundIndex(nextIndex);
     setPicksLeft(roundPicks[nextIndex]);
     setAtOffer(false);
+    setBankerQuip('');
   };
 
   const acceptDeal = () => {
@@ -258,6 +296,7 @@ function App() {
     setWinAmount(null);
     setOfferHistory([]);
     setImages(buildImageArray());
+    setBankerQuip('');
   };
 
 
@@ -304,10 +343,13 @@ function App() {
                   <button className="btn-inline" onClick={() => setOfferRevealed(true)}>Reveal Offer</button>
                 </div>
               ) : (
-                <div className="banker-offer-banner controls-row">
-                  <span>Banker offer: {bankerOffer ? `$${bankerOffer.toLocaleString()}` : 'Calculating...'}</span>
-                  <button className="btn-inline" onClick={proceedToNextRound}>Reject (No Deal)</button>
-                  <button className="btn-inline" onClick={acceptDeal}>Accept Deal</button>
+                <div className="banker-offer-banner">
+                  <div className="controls-row">
+                    <span>Banker offer: {bankerOffer ? `$${bankerOffer.toLocaleString()}` : 'Calculating...'}</span>
+                    <button className="btn-inline" onClick={proceedToNextRound}>Reject (No Deal)</button>
+                    <button className="btn-inline" onClick={acceptDeal}>Accept Deal</button>
+                  </div>
+                  {bankerQuip && <div className="banker-quip">{bankerQuip}</div>}
                 </div>
               )}
             </Col>
@@ -316,8 +358,14 @@ function App() {
         {gameOver && (
           <Row>
             <Col>
-              <div className="win-banner">You won ${winAmount?.toLocaleString?.() ?? winAmount}{keptCaseValue != null ? ` (Your case: $${(keptCaseValue?.toLocaleString?.() ?? keptCaseValue)})` : ''}
-                <button className="btn-inline" style={{ marginLeft: 12 }} onClick={restartGame}>Restart</button>
+              <div className="win-banner">
+                <div>
+                  You won ${winAmount?.toLocaleString?.() ?? winAmount}{keptCaseValue != null ? ` (Your case: $${(keptCaseValue?.toLocaleString?.() ?? keptCaseValue)})` : ''}
+                  <button className="btn-inline" style={{ marginLeft: 12 }} onClick={restartGame}>Restart</button>
+                </div>
+                {bankerQuip && (
+                  <div className="banker-quip">{bankerQuip}</div>
+                )}
               </div>
             </Col>
           </Row>
