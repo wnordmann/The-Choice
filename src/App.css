@@ -18,6 +18,23 @@
   width: calc(100% - 20px);
 }
 
+.image-grid.dimmed {
+  position: relative;
+}
+
+.image-grid.dimmed::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.image-grid.dimmed .image-item {
+  pointer-events: none;
+}
+
 .image-item {
   position: relative; 
   overflow: hidden; 
@@ -45,21 +62,35 @@
 }
 
 .image-item.opened {
-  background: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: default;
 }
 
 .image-item.opened img {
-  display: none;
+  filter: grayscale(100%) brightness(0.6);
 }
 
 .case-value-display {
   color: #fff;
   font-size: 1.1rem;
   font-weight: bold;
+}
+
+.case-number-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums; /* fixed-width digits */
+  width: 5ch; /* space for 5 digits */
+  text-align: center;
+  white-space: nowrap;
 }
 
 .image-item.player-case {
@@ -76,6 +107,66 @@
   margin: 10px 0;
   border-radius: 8px;
   font-weight: 600;
+}
+
+.round-banner {
+  background: #111827;
+  color: #e5e7eb;
+  padding: 10px 16px;
+  margin: 10px 0;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-inline {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-inline:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.offer-announce {
+  background: #1f2937;
+  color: #f3f4f6;
+  padding: 12px 16px;
+  margin: 10px 0;
+  border-radius: 8px;
+  font-weight: 700;
+  animation: slide-up 0.8s ease-out both;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.win-banner {
+  background: #065f46;
+  color: #ecfdf5;
+  padding: 12px 16px;
+  margin: 10px 0;
+  border-radius: 8px;
+  font-weight: 800;
 }
 
 .player-case-banner .player-case-value {
@@ -108,4 +199,29 @@
   text-decoration: line-through;
   background-color: #fee2e2;
   border-color: #fecaca;
+}
+
+/* Removed mobile-specific and large-screen flex overrides to revert layout */
+
+.offer-history {
+  background: #0b1220;
+  color: #e5e7eb;
+  padding: 10px 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+}
+.offer-history h5 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+}
+.offer-history .history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.offer-history .history-item:first-child {
+  border-top: none;
 }

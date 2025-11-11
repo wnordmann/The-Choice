@@ -8,7 +8,7 @@ import DisplayCase from './caseComponent'
 import DisplayCaseValues from './caseValueComponent';
 import './App.css'; // Import the CSS file
 import imageData from './data/output.json'
-import AnimatedText from './AnimatedText/'; // Import the component
+// Removed AnimatedText overlay per new UX
 
 function getRandomIntInclusiveAsString(min, max) {
   min = Math.ceil(min);
@@ -34,7 +34,7 @@ function App() {
     }
     return 5; // Default value for server-side or if no localStorage
   });
-  
+
   const [numberCases, setNumberCases] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedText3 = localStorage.getItem('NumberCases');
@@ -54,7 +54,7 @@ function App() {
   const buildImageArray = () => {
     const images = [];
     for (let i = 1; i <= 24; i++) {
-      const randomIndex = getRandomIntInclusiveAsString(0,19);
+      const randomIndex = getRandomIntInclusiveAsString(0, 19);
       const imagesName = imageData.elf[i.toString()][randomIndex];
       images.push(`/images/elf/${i}/${imagesName.name}`);
     }
@@ -65,6 +65,19 @@ function App() {
   const [playerCaseNumber, setPlayerCaseNumber] = useState(null);
   const [lastOpenedCase, setLastOpenedCase] = useState(null);
   const [bankerOffer, setBankerOffer] = useState(null);
+  // Round/flow state
+  // 24 cases: 1 kept by player, 23 opened across rounds
+  // Sequence sums to 23: 5 + 6 + 5 + 4 + 3
+  const roundPicks = [5, 6, 5, 4, 3];
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [picksLeft, setPicksLeft] = useState(null); // null until player selects their case
+  const [atOffer, setAtOffer] = useState(false);
+  const [finalReveal, setFinalReveal] = useState(false); // final step: open player's case
+  const [offerRevealed, setOfferRevealed] = useState(false); // suspense gate for banker offer
+  const [gameOver, setGameOver] = useState(false);
+  const [winAmount, setWinAmount] = useState(null);
+  const [offerHistory, setOfferHistory] = useState([]);
+  const [keptCaseValue, setKeptCaseValue] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -80,7 +93,34 @@ function App() {
     setPlayerCaseNumber(null);
     setLastOpenedCase(null);
     setBankerOffer(null);
+    setRoundIndex(0);
+    setPicksLeft(null);
+    setAtOffer(false);
+    setFinalReveal(false);
+    setOfferRevealed(false);
+    setGameOver(false);
+    setWinAmount(null);
+    setOfferHistory([]);
+    setKeptCaseValue(null);
   }, [prizeAmount, numberRounds, numberCases]);
+
+  // When a banker offer appears, reset reveal state
+  useEffect(() => {
+    if (atOffer) {
+      setOfferRevealed(false);
+    }
+  }, [atOffer]);
+
+  // Record banker offers when they appear (once per round)
+  useEffect(() => {
+    if (atOffer && bankerOffer != null) {
+      setOfferHistory((prev) => {
+        const r = roundIndex + 1;
+        if (prev.some((h) => h.round === r)) return prev;
+        return [...prev, { round: r, offer: bankerOffer }];
+      });
+    }
+  }, [atOffer, bankerOffer, roundIndex]);
 
   const handlePrizeAmountChange = (event) => {
     setPrizeAmount(event.target.value);
@@ -107,6 +147,7 @@ function App() {
   };
 
   function handleImageClick(index) {
+    if (gameOver) return;
     const caseNumber = index + 1;
     const selectedCase = cases[caseNumber];
 
@@ -121,6 +162,30 @@ function App() {
         [caseNumber]: { ...prevCases[caseNumber], isPlayerCase: true }
       }));
       setLastOpenedCase(null);
+      setRoundIndex(0);
+      setPicksLeft(roundPicks[0]);
+      return;
+    }
+
+    // Final step: only allow opening the player's case
+    if (finalReveal) {
+      if (caseNumber !== playerCaseNumber) return;
+      const playerCase = cases[caseNumber];
+      if (playerCase?.open) return;
+      setLastOpenedCase({ caseNumber, value: playerCase.cashValue });
+      setCases((prevCases) => ({
+        ...prevCases,
+        [caseNumber]: { ...prevCases[caseNumber], open: true },
+      }));
+      setFinalReveal(false);
+      setGameOver(true);
+      setWinAmount(playerCase.cashValue);
+      setKeptCaseValue(playerCase.cashValue);
+      return;
+    }
+
+    // During banker offer or invalid targets, ignore clicks
+    if (atOffer || picksLeft === 0 || picksLeft === null) {
       return;
     }
 
@@ -137,12 +202,68 @@ function App() {
       updateBankerOffer(updatedCases);
       return updatedCases;
     });
+    // Decrement picks and potentially trigger banker offer or final reveal
+    setPicksLeft((prev) => {
+      const next = (prev ?? 0) - 1;
+      if (next <= 0) {
+        // If this was the last configured round, proceed to final reveal
+        if (roundIndex >= roundPicks.length - 1) {
+          setFinalReveal(true);
+          setAtOffer(false);
+        } else {
+          setAtOffer(true);
+        }
+        return 0;
+      }
+      return next;
+    });
   };
- 
+
+  const proceedToNextRound = () => {
+    const nextIndex = roundIndex + 1;
+    if (nextIndex >= roundPicks.length) {
+      // Safety: if somehow invoked at end, move to final reveal
+      setPicksLeft(0);
+      setAtOffer(false);
+      setFinalReveal(true);
+      return;
+    }
+    setRoundIndex(nextIndex);
+    setPicksLeft(roundPicks[nextIndex]);
+    setAtOffer(false);
+  };
+
+  const acceptDeal = () => {
+    if (!bankerOffer) return;
+    setGameOver(true);
+    setWinAmount(bankerOffer);
+    setAtOffer(false);
+    setFinalReveal(false);
+    if (playerCaseNumber && cases[playerCaseNumber]) {
+      setKeptCaseValue(cases[playerCaseNumber].cashValue);
+    }
+  };
+
+  const restartGame = () => {
+    setCases(buildCases(numberCases, prizeAmount));
+    setPlayerCaseNumber(null);
+    setLastOpenedCase(null);
+    setBankerOffer(null);
+    setRoundIndex(0);
+    setPicksLeft(null);
+    setAtOffer(false);
+    setFinalReveal(false);
+    setOfferRevealed(false);
+    setGameOver(false);
+    setWinAmount(null);
+    setOfferHistory([]);
+    setImages(buildImageArray());
+  };
+
 
   return (
     <div className="my-custom-container">
-      <AnimatedText />
+      {/* Banker phase now dims the grid; pick-a-case animation removed */}
       <Container fluid >
         <Row>
           <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
@@ -157,47 +278,88 @@ function App() {
             </Col>
           </Row>
         )}
-        {lastOpenedCase && (
-          <Row className="last-case-row">
+        {/* Removed the 'Opened case' banner for a cleaner UI */}
+        {!playerCaseNumber && (
+          <Row>
             <Col>
-              <div className="last-case-banner">
-                Opened case #{lastOpenedCase.caseNumber}: ${lastOpenedCase.value}
+              <div className="round-banner">Pick your case to keep</div>
+            </Col>
+          </Row>
+        )}
+        {playerCaseNumber && !atOffer && !finalReveal && picksLeft !== null && (
+          <Row>
+            <Col>
+              <div className="round-banner">
+                Round {roundIndex + 1}: Pick {roundPicks[roundIndex] ?? 1} cases - {picksLeft} left
               </div>
             </Col>
           </Row>
         )}
-        {playerCaseNumber && (
+        {playerCaseNumber && atOffer && !finalReveal && !gameOver && (
           <Row className="banker-row">
             <Col>
-              <div className="banker-offer-banner">
-                Banker offer: {bankerOffer ? `$${bankerOffer.toLocaleString()}` : 'Open a case to hear from the banker'}
+              {!offerRevealed ? (
+                <div className="offer-announce controls-row">
+                  <span>The banker has an offer…</span>
+                  <button className="btn-inline" onClick={() => setOfferRevealed(true)}>Reveal Offer</button>
+                </div>
+              ) : (
+                <div className="banker-offer-banner controls-row">
+                  <span>Banker offer: {bankerOffer ? `$${bankerOffer.toLocaleString()}` : 'Calculating...'}</span>
+                  <button className="btn-inline" onClick={proceedToNextRound}>Reject (No Deal)</button>
+                  <button className="btn-inline" onClick={acceptDeal}>Accept Deal</button>
+                </div>
+              )}
+            </Col>
+          </Row>
+        )}
+        {gameOver && (
+          <Row>
+            <Col>
+              <div className="win-banner">You won ${winAmount?.toLocaleString?.() ?? winAmount}{keptCaseValue != null ? ` (Your case: $${(keptCaseValue?.toLocaleString?.() ?? keptCaseValue)})` : ''}
+                <button className="btn-inline" style={{ marginLeft: 12 }} onClick={restartGame}>Restart</button>
               </div>
+            </Col>
+          </Row>
+        )}
+        {playerCaseNumber && finalReveal && (
+          <Row>
+            <Col>
+              <div className="round-banner">Final step: Open your case!</div>
             </Col>
           </Row>
         )}
         <Row>
           <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
             <DisplayCaseValues cases={cases}></DisplayCaseValues>
-          </Col>
-          <Col md={9} className="main-content"> 
-            <div className="image-grid"> {/* Container for the grid */}
-              {images.map((image, index) => (
-                  <div
-                    key={index}
-                    className={`image-item ${cases[index + 1]?.open ? 'opened' : ''} ${cases[index + 1]?.isPlayerCase ? 'player-case' : ''}`}
-                    onClick={() => handleImageClick(index)}
-                  >
-                      {cases[index + 1]?.open ? (
-                        <div className="case-value-display">
-                          ${cases[index + 1]?.cashValue}
-                        </div>
-                      ) : (
-                        <img src={image} alt={image} />
-                      )}
+            {offerHistory.length > 0 && (
+              <div className="offer-history">
+                <h5>Banker History</h5>
+                {offerHistory.map((h, idx) => (
+                  <div key={idx} className="history-item">
+                    <span>Round {h.round}</span>
+                    <span>${h.offer?.toLocaleString?.() ?? h.offer}</span>
                   </div>
                 ))}
               </div>
-            </Col>
+            )}
+          </Col>
+          <Col md={9} className="main-content"> 
+            <div className={`image-grid ${(atOffer && !finalReveal) || gameOver ? 'dimmed' : ''}`}> {/* Dims during banker or after game over */}
+              {images.map((image, index) => (
+                <div
+                  key={index}
+                  className={`image-item ${cases[index + 1]?.open ? 'opened' : ''} ${cases[index + 1]?.isPlayerCase ? 'player-case' : ''}`}
+                  onClick={() => handleImageClick(index)}
+                >
+                  <img src={image} alt={image} />
+                  {cases[index + 1]?.open && (
+                    <div className="case-number-overlay">$ {cases[index + 1].cashValue}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Col>
         </Row>
       </Container>
     </div>
