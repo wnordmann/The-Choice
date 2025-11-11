@@ -278,7 +278,13 @@ function App() {
     setAtOffer(false);
     setFinalReveal(false);
     if (playerCaseNumber && cases[playerCaseNumber]) {
-      setKeptCaseValue(cases[playerCaseNumber].cashValue);
+      const keptVal = cases[playerCaseNumber].cashValue;
+      setKeptCaseValue(keptVal);
+      // Quip reflecting the difference between deal and kept case value
+      try {
+        const quip = pickBankerQuip(keptVal, bankerOffer);
+        setBankerQuip(quip);
+      } catch (_e) {}
     }
   };
 
