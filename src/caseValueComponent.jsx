@@ -7,9 +7,10 @@ function DisplayCaseValues({ cases }) {
     }
 
     // Sort the keys based on the cashValue of the corresponding objects
-    const sortedKeys = Object.keys(cases).sort((a, b) => {
-      return cases[b].cashValue - cases[a].cashValue; // Sort in descending order of cashValue
-    });
+    const sortedKeys = Object.keys(cases)
+      .sort((a, b) => {
+        return cases[b].cashValue - cases[a].cashValue; // Sort in descending order of cashValue
+      });
     
     // Convert the keys to numbers if needed (optional, but good practice)
     const numericalKeys = sortedKeys.map(Number)
@@ -17,7 +18,7 @@ function DisplayCaseValues({ cases }) {
     return( 
       <ListGroup>
         {numericalKeys.map((key) => (
-          <ListGroup.Item key={key} className="case-item">
+          <ListGroup.Item key={key} className={`case-item ${cases[key].open ? 'case-item-open' : ''}`}>
             ${cases[key].cashValue}
           </ListGroup.Item>
         ))}

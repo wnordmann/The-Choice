@@ -21,6 +21,7 @@
 .image-item {
   position: relative; 
   overflow: hidden; 
+  border: 2px solid transparent;
 }
 
 .image-item::before { 
@@ -43,6 +44,45 @@
   transform: scale(1.1);
 }
 
+.image-item.opened {
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.image-item.opened img {
+  display: none;
+}
+
+.case-value-display {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.image-item.player-case {
+  border-color: #facc15;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+}
+
+.player-case-banner,
+.last-case-banner,
+.banker-offer-banner {
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 10px 16px;
+  margin: 10px 0;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.player-case-banner .player-case-value {
+  margin-left: 10px;
+  font-weight: normal;
+}
+
 .my-custom-container {
   min-width: 1200px;
   margin: 0 auto; /* Center the container */
@@ -63,6 +103,9 @@
   text-align: center;
 }
 
-.picked {
-  visibility: hidden;
+.case-item-open {
+  color: #b91c1c;
+  text-decoration: line-through;
+  background-color: #fee2e2;
+  border-color: #fecaca;
 }

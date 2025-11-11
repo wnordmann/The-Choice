@@ -5,7 +5,8 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import buildCases from './cases';
 import DisplayCase from './caseComponent'
-import DisplayCaseValues from './caseValueComponent';import './App.css'; // Import the CSS file
+import DisplayCaseValues from './caseValueComponent';
+import './App.css'; // Import the CSS file
 import imageData from './data/output.json'
 import AnimatedText from './AnimatedText/'; // Import the component
 
@@ -21,9 +22,9 @@ function App() {
   const [prizeAmount, setPrizeAmount] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedText1 = localStorage.getItem('prizeAmount');
-      return storedText1 ? JSON.parse(storedText1) : 1000000;
+      return storedText1 ? JSON.parse(storedText1) : 500;
     }
-    return 1000000;
+    return 500;
   });
 
   const [numberRounds, setNumberRounds] = useState(() => {
@@ -61,7 +62,9 @@ function App() {
   }
 
   const [images, setImages] = useState(buildImageArray);
-
+  const [playerCaseNumber, setPlayerCaseNumber] = useState(null);
+  const [lastOpenedCase, setLastOpenedCase] = useState(null);
+  const [bankerOffer, setBankerOffer] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -70,18 +73,70 @@ function App() {
       localStorage.setItem('numberCases', JSON.stringify(numberCases));
       localStorage.setItem('cases', JSON.stringify(cases));
     }
+  }, [prizeAmount, numberRounds, numberCases, cases]);
+
+  useEffect(() => {
     setCases(buildCases(numberCases, prizeAmount));
+    setPlayerCaseNumber(null);
+    setLastOpenedCase(null);
+    setBankerOffer(null);
   }, [prizeAmount, numberRounds, numberCases]);
 
   const handlePrizeAmountChange = (event) => {
     setPrizeAmount(event.target.value);
-    setCases(buildCases(numberCases, prizeAmount));
+  };
+
+  const updateBankerOffer = (updatedCases) => {
+    const caseEntries = Object.values(updatedCases);
+    if (caseEntries.length === 0) {
+      setBankerOffer(null);
+      return;
+    }
+
+    const remainingCases = caseEntries.filter((caseData) => !caseData.open);
+    if (remainingCases.length === caseEntries.length || remainingCases.length === 0) {
+      setBankerOffer(null);
+      return;
+    }
+
+    const totalValue = remainingCases.reduce((sum, caseData) => sum + caseData.cashValue, 0);
+    const averageValue = totalValue / remainingCases.length;
+    const tension = 0.4 + 0.6 * (1 - remainingCases.length / caseEntries.length);
+    const offer = Math.round(averageValue * tension);
+    setBankerOffer(offer);
   };
 
   function handleImageClick(index) {
-    const newCases = {...cases};
-    newCases[index + 1].selected = true;
-    setCases(newCases);
+    const caseNumber = index + 1;
+    const selectedCase = cases[caseNumber];
+
+    if (!selectedCase) {
+      return;
+    }
+
+    if (!playerCaseNumber) {
+      setPlayerCaseNumber(caseNumber);
+      setCases((prevCases) => ({
+        ...prevCases,
+        [caseNumber]: { ...prevCases[caseNumber], isPlayerCase: true }
+      }));
+      setLastOpenedCase(null);
+      return;
+    }
+
+    if (caseNumber === playerCaseNumber || selectedCase.open) {
+      return;
+    }
+
+    setLastOpenedCase({ caseNumber, value: selectedCase.cashValue });
+    setCases((prevCases) => {
+      const updatedCases = {
+        ...prevCases,
+        [caseNumber]: { ...prevCases[caseNumber], open: true }
+      };
+      updateBankerOffer(updatedCases);
+      return updatedCases;
+    });
   };
  
 
@@ -92,6 +147,34 @@ function App() {
         <Row>
           <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
         </Row>
+        {playerCaseNumber && (
+          <Row className="player-case-row">
+            <Col>
+              <div className="player-case-banner">
+                <span>Your case: #{playerCaseNumber}</span>
+                <span className="player-case-value">(kept closed)</span>
+              </div>
+            </Col>
+          </Row>
+        )}
+        {lastOpenedCase && (
+          <Row className="last-case-row">
+            <Col>
+              <div className="last-case-banner">
+                Opened case #{lastOpenedCase.caseNumber}: ${lastOpenedCase.value}
+              </div>
+            </Col>
+          </Row>
+        )}
+        {playerCaseNumber && (
+          <Row className="banker-row">
+            <Col>
+              <div className="banker-offer-banner">
+                Banker offer: {bankerOffer ? `$${bankerOffer.toLocaleString()}` : 'Open a case to hear from the banker'}
+              </div>
+            </Col>
+          </Row>
+        )}
         <Row>
           <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
             <DisplayCaseValues cases={cases}></DisplayCaseValues>
@@ -99,8 +182,18 @@ function App() {
           <Col md={9} className="main-content"> 
             <div className="image-grid"> {/* Container for the grid */}
               {images.map((image, index) => (
-                  <div key={index} className={`image-item ${cases[index+1]?.selected ? 'picked' : ''}`} onClick={() => handleImageClick(index)}>
-                      <img src={image} alt={image} />
+                  <div
+                    key={index}
+                    className={`image-item ${cases[index + 1]?.open ? 'opened' : ''} ${cases[index + 1]?.isPlayerCase ? 'player-case' : ''}`}
+                    onClick={() => handleImageClick(index)}
+                  >
+                      {cases[index + 1]?.open ? (
+                        <div className="case-value-display">
+                          ${cases[index + 1]?.cashValue}
+                        </div>
+                      ) : (
+                        <img src={image} alt={image} />
+                      )}
                   </div>
                 ))}
               </div>
