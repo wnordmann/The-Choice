@@ -56,7 +56,7 @@ function App() {
     for (let i = 1; i <= 24; i++) {
       const randomIndex = getRandomIntInclusiveAsString(0, 19);
       const imagesName = imageData.elf[i.toString()][randomIndex];
-      images.push(`/images/elf/${i}/${imagesName.name}`);
+      images.push(`images/elf/${i}/${imagesName.name}`);
     }
     return images;
   }
@@ -344,7 +344,7 @@ function App() {
               </div>
             )}
           </Col>
-          <Col md={9} className="main-content"> 
+          <Col md={9} className="main-content">
             <div className={`image-grid ${(atOffer && !finalReveal) || gameOver ? 'dimmed' : ''}`}> {/* Dims during banker or after game over */}
               {images.map((image, index) => (
                 <div
