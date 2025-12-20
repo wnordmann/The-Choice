@@ -31,17 +31,18 @@ function App() {
   const [numberRounds, setNumberRounds] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedText2 = localStorage.getItem('numberRounds');
-      return storedText2 !== null ? JSON.parse(storedText2) : 5; // Use default if null
+      return storedText2 !== null ? JSON.parse(storedText2) : 6; // Use default if null
     }
-    return 5; // Default value for server-side or if no localStorage
+    return 6; // Default value for server-side or if no localStorage
   });
 
   const [numberCases, setNumberCases] = useState(() => {
     if (typeof window !== 'undefined') {
-      const storedText3 = localStorage.getItem('NumberCases');
-      return storedText3 ? JSON.parse(storedText3) : 24;
+      const storedText3 = localStorage.getItem('numberCases');
+      const val = storedText3 ? JSON.parse(storedText3) : 21;
+      return val > 21 ? 21 : val;
     }
-    return 24;
+    return 21;
   });
 
   const [cases, setCases] = useState(() => {
@@ -54,7 +55,7 @@ function App() {
 
   const buildImageArray = () => {
     const images = [];
-    for (let i = 1; i <= 24; i++) {
+    for (let i = 1; i <= numberCases; i++) {
       const randomIndex = getRandomIntInclusiveAsString(0, 19);
       const imagesName = imageData.elf[i.toString()][randomIndex];
       images.push(`images/elf/${i}/${imagesName.name}`);
@@ -67,14 +68,13 @@ function App() {
   const [lastOpenedCase, setLastOpenedCase] = useState(null);
   const [bankerOffer, setBankerOffer] = useState(null);
   // Round/flow state
-  // 24 cases: 1 kept by player, 23 opened across rounds
-  // Sequence sums to 23: 5 + 6 + 5 + 4 + 3
-  const roundPicks = [5, 6, 5, 4, 3];
+  // 21 cases: 1 kept by player, 20 opened across rounds
+  // Sequence sums to 20: 6 + 5 + 4 + 2 + 2 + 1
+  const roundPicks = [6, 5, 4, 2, 2, 1];
   const [roundIndex, setRoundIndex] = useState(0);
   const [picksLeft, setPicksLeft] = useState(null); // null until player selects their case
   const [atOffer, setAtOffer] = useState(false);
   const [finalReveal, setFinalReveal] = useState(false); // final step: open player's case
-  const [offerRevealed, setOfferRevealed] = useState(false); // suspense gate for banker offer
   const [gameOver, setGameOver] = useState(false);
   const [winAmount, setWinAmount] = useState(null);
   const [offerHistory, setOfferHistory] = useState([]);
@@ -99,19 +99,11 @@ function App() {
     setPicksLeft(null);
     setAtOffer(false);
     setFinalReveal(false);
-    setOfferRevealed(false);
     setGameOver(false);
     setWinAmount(null);
     setOfferHistory([]);
     setKeptCaseValue(null);
   }, [prizeAmount, numberRounds, numberCases]);
-
-  // When a banker offer appears, reset reveal state
-  useEffect(() => {
-    if (atOffer) {
-      setOfferRevealed(false);
-    }
-  }, [atOffer]);
 
   // Record banker offers when they appear (once per round)
   useEffect(() => {
@@ -297,7 +289,6 @@ function App() {
     setPicksLeft(null);
     setAtOffer(false);
     setFinalReveal(false);
-    setOfferRevealed(false);
     setGameOver(false);
     setWinAmount(null);
     setOfferHistory([]);
@@ -307,11 +298,14 @@ function App() {
 
 
   return (
-    <div className="my-custom-container">
+    <div className="my-custom-container" style={{ maxWidth: '1800px', width: '1800px', margin: '0 auto' }}>
       {/* Banker phase now dims the grid; pick-a-case animation removed */}
       <Container fluid >
         <Row>
-          <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
+          <Col style={{ padding: '10px', display: 'flex', gap: '10px' }}>
+            <input type="number" value={prizeAmount} onChange={handlePrizeAmountChange} placeholder="Prize Amount" />
+            <button className="btn-inline" onClick={restartGame}>Restart</button>
+          </Col>
         </Row>
         {playerCaseNumber && (
           <Row className="player-case-row">
@@ -323,69 +317,44 @@ function App() {
             </Col>
           </Row>
         )}
-        {/* Removed the 'Opened case' banner for a cleaner UI */}
-        {!playerCaseNumber && (
-          <Row>
-            <Col>
+        <Row>
+          <Col md={3} className="sidebar" style={{ fontSize: '1.25rem' }}> {/* Sidebar occupies 3/12 columns on medium screens and up */}
+            <DisplayCaseValues cases={cases}></DisplayCaseValues>
+            {!playerCaseNumber && (
               <div className="round-banner">Pick your case to keep</div>
-            </Col>
-          </Row>
-        )}
-        {playerCaseNumber && !atOffer && !finalReveal && picksLeft !== null && (
-          <Row>
-            <Col>
+            )}
+            {playerCaseNumber && !atOffer && !finalReveal && !gameOver && picksLeft !== null && (
               <div className="round-banner">
                 Round {roundIndex + 1}: Pick {roundPicks[roundIndex] ?? 1} cases - {picksLeft} left
               </div>
-            </Col>
-          </Row>
-        )}
-        {playerCaseNumber && atOffer && !finalReveal && !gameOver && (
-          <Row className="banker-row">
-            <Col>
-              {!offerRevealed ? (
-                <div className="offer-announce controls-row">
-                  <span>The banker has an offer…</span>
-                  <button className="btn-inline" onClick={() => setOfferRevealed(true)}>Reveal Offer</button>
-                </div>
-              ) : (
-                <div className="banker-offer-banner">
-                  <div className="controls-row">
-                    <span>Banker offer: {bankerOffer ? `$${bankerOffer.toLocaleString()}` : 'Calculating...'}</span>
-                    <button className="btn-inline" onClick={proceedToNextRound}>Reject (No Deal)</button>
-                    <button className="btn-inline" onClick={acceptDeal}>Accept Deal</button>
-                  </div>
-                  {bankerQuip && <div className="banker-quip">{bankerQuip}</div>}
-                </div>
-              )}
-            </Col>
-          </Row>
-        )}
-        {gameOver && (
-          <Row>
-            <Col>
-              <div className="win-banner">
-                <div>
-                  You won ${winAmount?.toLocaleString?.() ?? winAmount}{keptCaseValue != null ? ` (Your case: $${(keptCaseValue?.toLocaleString?.() ?? keptCaseValue)})` : ''}
-                  <button className="btn-inline" style={{ marginLeft: 12 }} onClick={restartGame}>Restart</button>
-                </div>
-                {bankerQuip && (
-                  <div className="banker-quip">{bankerQuip}</div>
-                )}
-              </div>
-            </Col>
-          </Row>
-        )}
-        {playerCaseNumber && finalReveal && (
-          <Row>
-            <Col>
+            )}
+            {playerCaseNumber && finalReveal && (
               <div className="round-banner">Final step: Open your case!</div>
-            </Col>
-          </Row>
-        )}
-        <Row>
-          <Col md={3} className="sidebar"> {/* Sidebar occupies 3/12 columns on medium screens and up */}
-            <DisplayCaseValues cases={cases}></DisplayCaseValues>
+            )}
+            {gameOver && (
+              <div className="win-banner">
+                <div style={{ marginBottom: '8px' }}>
+                  You won ${winAmount?.toLocaleString?.() ?? winAmount}
+                </div>
+                {keptCaseValue != null && (
+                  <div style={{ fontSize: '0.8em', fontWeight: 'normal', marginBottom: '8px' }}>
+                    (Your case: ${keptCaseValue?.toLocaleString?.() ?? keptCaseValue})
+                  </div>
+                )}
+                <button className="btn-inline" onClick={restartGame}>Play Again</button>
+                {bankerQuip && <div className="banker-quip">{bankerQuip}</div>}
+              </div>
+            )}
+            {playerCaseNumber && atOffer && !finalReveal && !gameOver && (
+              <div className="banker-offer-banner">
+                <div className="controls-row">
+                  <span>Banker offer: {bankerOffer ? `$${bankerOffer.toLocaleString()}` : 'Calculating...'}</span>
+                  <button className="btn-inline" onClick={proceedToNextRound}>Reject (No Deal)</button>
+                  <button className="btn-inline" onClick={acceptDeal}>Accept Deal</button>
+                </div>
+                {bankerQuip && <div className="banker-quip">{bankerQuip}</div>}
+              </div>
+            )}
             {offerHistory.length > 0 && (
               <div className="offer-history">
                 <h5>Banker History</h5>
@@ -399,7 +368,7 @@ function App() {
             )}
           </Col>
           <Col md={9} className="main-content">
-            <div className={`image-grid ${(atOffer && !finalReveal) || gameOver ? 'dimmed' : ''}`}> {/* Dims during banker or after game over */}
+            <div className={`image-grid ${(atOffer && !finalReveal) || gameOver ? 'dimmed' : ''}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}> {/* Dims during banker or after game over */}
               {images.map((image, index) => (
                 <div
                   key={index}

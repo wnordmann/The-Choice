@@ -85,17 +85,28 @@
   padding: 6px 10px;
   border-radius: 6px;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   pointer-events: none;
   font-variant-numeric: tabular-nums; /* fixed-width digits */
   width: 5ch; /* space for 5 digits */
   text-align: center;
   white-space: nowrap;
+  z-index: 2;
 }
 
 .image-item.player-case {
   border-color: #facc15;
+  border-width: 6px;
   box-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+}
+
+.image-item.player-case::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(250, 204, 21, 0.35);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .player-case-banner,
