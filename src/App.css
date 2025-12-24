@@ -242,3 +242,51 @@
 .offer-history .history-item:first-child {
   border-top: none;
 }
+
+.swap-banner {
+  background: #431407;
+  color: #fff7ed;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #9a3412;
+  animation: slide-up 0.8s ease-out both;
+}
+
+.swap-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.btn-swap {
+  background: #ea580c;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-swap:hover {
+  background: #c2410c;
+}
+
+.btn-keep {
+  background: #15803d;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-keep:hover {
+  background: #166534;
+}
