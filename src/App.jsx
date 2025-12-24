@@ -82,6 +82,8 @@ function App() {
   const [bankerQuip, setBankerQuip] = useState('');
   const [swapOffered, setSwapOffered] = useState(false);
   const [swappedCaseFrom, setSwappedCaseFrom] = useState(null);
+  const [missedPrize, setMissedPrize] = useState(null);
+  const [missedCaseNumber, setMissedCaseNumber] = useState(null);
 
   const generateCases = (num, prize) => {
     const newCases = buildCases(num, prize);
@@ -130,6 +132,8 @@ function App() {
     setKeptCaseValue(null);
     setSwapOffered(false);
     setSwappedCaseFrom(null);
+    setMissedPrize(null);
+    setMissedCaseNumber(null);
   }, [prizeAmount, numberRounds, numberCases]);
 
   // Record banker offers when they appear (once per round)
@@ -317,6 +321,8 @@ function App() {
     if (found) {
       const [otherCaseNumStr, otherCaseData] = found;
       const otherCaseNum = Number(otherCaseNumStr);
+      setMissedPrize(cases[playerCaseNumber].cashValue);
+      setMissedCaseNumber(playerCaseNumber);
       setSwappedCaseFrom(playerCaseNumber);
       setCases((prev) => ({
         ...prev,
@@ -337,8 +343,33 @@ function App() {
   };
 
   const handleKeep = () => {
+    const entries = Object.entries(cases);
+    const found = entries.find(([k, c]) => !c.open && !c.isPlayerCase);
+    const playerCaseData = cases[playerCaseNumber];
+
+    if (found) {
+      const [otherCaseNumStr, otherCaseData] = found;
+      setMissedPrize(otherCaseData.cashValue);
+      setMissedCaseNumber(otherCaseNumStr);
+    }
+    setCases((prev) => {
+      const newState = { ...prev };
+      newState[playerCaseNumber] = { ...newState[playerCaseNumber], open: true };
+      if (found) {
+        const [otherCaseNumStr] = found;
+        newState[otherCaseNumStr] = { ...newState[otherCaseNumStr], open: true };
+      }
+      return newState;
+    });
+    setWinAmount(playerCaseData.cashValue);
+    setKeptCaseValue(playerCaseData.cashValue);
+    setGameOver(true);
+    setFinalReveal(false);
+    const lastOffer = offerHistory.length ? offerHistory[offerHistory.length - 1].offer : null;
+    try {
+      setBankerQuip(pickBankerQuip(lastOffer, playerCaseData.cashValue));
+    } catch (_e) {}
     setSwapOffered(false);
-    advanceRound();
   };
 
   const acceptDeal = () => {
@@ -374,6 +405,8 @@ function App() {
     setBankerQuip('');
     setSwapOffered(false);
     setSwappedCaseFrom(null);
+    setMissedPrize(null);
+    setMissedCaseNumber(null);
   };
 
 
@@ -417,15 +450,17 @@ function App() {
                 <div style={{ marginBottom: '8px' }}>
                   You won ${winAmount?.toLocaleString?.() ?? winAmount}
                 </div>
-                {keptCaseValue != null && (
-                  <div style={{ fontSize: '0.8em', fontWeight: 'normal', marginBottom: '8px' }}>
-                    (Your case: ${keptCaseValue?.toLocaleString?.() ?? keptCaseValue})
+                {missedPrize !== null ? (
+                  <div style={{ fontSize: '0.9em', marginBottom: '8px', color: '#fbbf24' }}>
+                    Missed out on: ${missedPrize?.toLocaleString?.()}
+                    {missedCaseNumber && ` (${swappedCaseFrom ? 'Original ' : ''}Case #${missedCaseNumber})`}
                   </div>
-                )}
-                {swappedCaseFrom && cases[swappedCaseFrom] && (
-                  <div style={{ fontSize: '0.8em', fontWeight: 'normal', marginBottom: '8px', color: '#fbbf24' }}>
-                    (Original Case #{swappedCaseFrom}: ${cases[swappedCaseFrom].cashValue?.toLocaleString?.()})
-                  </div>
+                ) : (
+                  keptCaseValue != null && (
+                    <div style={{ fontSize: '0.8em', fontWeight: 'normal', marginBottom: '8px' }}>
+                      (Your case: ${keptCaseValue?.toLocaleString?.() ?? keptCaseValue})
+                    </div>
+                  )
                 )}
                 <button className="btn-inline" onClick={restartGame}>Play Again</button>
                 {bankerQuip && <div className="banker-quip">{bankerQuip}</div>}
