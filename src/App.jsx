@@ -80,6 +80,31 @@ function App() {
   const [offerHistory, setOfferHistory] = useState([]);
   const [keptCaseValue, setKeptCaseValue] = useState(null);
   const [bankerQuip, setBankerQuip] = useState('');
+  const [swapOffered, setSwapOffered] = useState(false);
+  const [swappedCaseFrom, setSwappedCaseFrom] = useState(null);
+
+  const generateCases = (num, prize) => {
+    const newCases = buildCases(num, prize);
+    const prizeNum = Number(prize);
+    const entries = Object.entries(newCases);
+    const topPrizeKeys = entries
+      .filter(([, c]) => c.cashValue === prizeNum)
+      .map(([k]) => k);
+
+    if (topPrizeKeys.length > 1) {
+      // Keep one random case as the top prize, change others
+      const keepIndex = Math.floor(Math.random() * topPrizeKeys.length);
+      const keepKey = topPrizeKeys[keepIndex];
+      topPrizeKeys.forEach((key) => {
+        if (key !== keepKey) {
+          // Replace with a random value between 1 and prize - 1
+          const newValue = Math.floor(Math.random() * (prizeNum - 1)) + 1;
+          newCases[key] = { ...newCases[key], cashValue: newValue };
+        }
+      });
+    }
+    return newCases;
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -91,7 +116,7 @@ function App() {
   }, [prizeAmount, numberRounds, numberCases, cases]);
 
   useEffect(() => {
-    setCases(buildCases(numberCases, prizeAmount));
+    setCases(generateCases(numberCases, prizeAmount));
     setPlayerCaseNumber(null);
     setLastOpenedCase(null);
     setBankerOffer(null);
@@ -103,6 +128,8 @@ function App() {
     setWinAmount(null);
     setOfferHistory([]);
     setKeptCaseValue(null);
+    setSwapOffered(false);
+    setSwappedCaseFrom(null);
   }, [prizeAmount, numberRounds, numberCases]);
 
   // Record banker offers when they appear (once per round)
@@ -196,10 +223,18 @@ function App() {
       const playerCase = cases[caseNumber];
       if (playerCase?.open) return;
       setLastOpenedCase({ caseNumber, value: playerCase.cashValue });
-      setCases((prevCases) => ({
-        ...prevCases,
-        [caseNumber]: { ...prevCases[caseNumber], open: true },
-      }));
+      setCases((prevCases) => {
+        const newState = {
+          ...prevCases,
+          [caseNumber]: { ...prevCases[caseNumber], open: true },
+        };
+        // Also open the other remaining case so the player sees what they missed/swapped
+        const otherEntry = Object.entries(prevCases).find(([k, c]) => !c.open && Number(k) !== caseNumber);
+        if (otherEntry) {
+          newState[otherEntry[0]] = { ...newState[otherEntry[0]], open: true };
+        }
+        return newState;
+      });
       setFinalReveal(false);
       setGameOver(true);
       setWinAmount(playerCase.cashValue);
@@ -248,10 +283,9 @@ function App() {
     });
   };
 
-  const proceedToNextRound = () => {
+  const advanceRound = () => {
     const nextIndex = roundIndex + 1;
     if (nextIndex >= roundPicks.length) {
-      // Safety: if somehow invoked at end, move to final reveal
       setPicksLeft(0);
       setAtOffer(false);
       setFinalReveal(true);
@@ -261,6 +295,50 @@ function App() {
     setPicksLeft(roundPicks[nextIndex]);
     setAtOffer(false);
     setBankerQuip('');
+  };
+
+  const proceedToNextRound = () => {
+    const remainingOnBoard = Object.values(cases).filter(c => !c.open && !c.isPlayerCase).length;
+    if (remainingOnBoard === 1 && !swapOffered) {
+      setSwapOffered(true);
+      setAtOffer(false);
+      const quips = bankerQuips['swap_offer'];
+      if (quips && quips.length) {
+        setBankerQuip(quips[Math.floor(Math.random() * quips.length)]);
+      }
+      return;
+    }
+    advanceRound();
+  };
+
+  const handleSwap = () => {
+    const entries = Object.entries(cases);
+    const found = entries.find(([k, c]) => !c.open && !c.isPlayerCase);
+    if (found) {
+      const [otherCaseNumStr, otherCaseData] = found;
+      const otherCaseNum = Number(otherCaseNumStr);
+      setSwappedCaseFrom(playerCaseNumber);
+      setCases((prev) => ({
+        ...prev,
+        [playerCaseNumber]: { ...prev[playerCaseNumber], isPlayerCase: false, open: true },
+        [otherCaseNum]: { ...prev[otherCaseNum], isPlayerCase: true, open: true }
+      }));
+      setPlayerCaseNumber(otherCaseNum);
+      setWinAmount(otherCaseData.cashValue);
+      setKeptCaseValue(otherCaseData.cashValue);
+      setGameOver(true);
+      setFinalReveal(false);
+      const lastOffer = offerHistory.length ? offerHistory[offerHistory.length - 1].offer : null;
+      try {
+        setBankerQuip(pickBankerQuip(lastOffer, otherCaseData.cashValue));
+      } catch (_e) {}
+    }
+    setSwapOffered(false);
+  };
+
+  const handleKeep = () => {
+    setSwapOffered(false);
+    advanceRound();
   };
 
   const acceptDeal = () => {
@@ -281,7 +359,7 @@ function App() {
   };
 
   const restartGame = () => {
-    setCases(buildCases(numberCases, prizeAmount));
+    setCases(generateCases(numberCases, prizeAmount));
     setPlayerCaseNumber(null);
     setLastOpenedCase(null);
     setBankerOffer(null);
@@ -294,6 +372,8 @@ function App() {
     setOfferHistory([]);
     setImages(buildImageArray());
     setBankerQuip('');
+    setSwapOffered(false);
+    setSwappedCaseFrom(null);
   };
 
 
@@ -312,6 +392,7 @@ function App() {
             <Col>
               <div className="player-case-banner">
                 <span>Your case: #{playerCaseNumber}</span>
+                {swappedCaseFrom && <span style={{ marginLeft: '10px', fontSize: '0.8em', color: '#fbbf24' }}>(Swapped from #{swappedCaseFrom})</span>}
                 <span className="player-case-value">(kept closed)</span>
               </div>
             </Col>
@@ -323,7 +404,7 @@ function App() {
             {!playerCaseNumber && (
               <div className="round-banner">Pick your case to keep</div>
             )}
-            {playerCaseNumber && !atOffer && !finalReveal && !gameOver && picksLeft !== null && (
+            {playerCaseNumber && !atOffer && !finalReveal && !gameOver && !swapOffered && picksLeft !== null && (
               <div className="round-banner">
                 Round {roundIndex + 1}: Pick {roundPicks[roundIndex] ?? 1} cases - {picksLeft} left
               </div>
@@ -341,6 +422,11 @@ function App() {
                     (Your case: ${keptCaseValue?.toLocaleString?.() ?? keptCaseValue})
                   </div>
                 )}
+                {swappedCaseFrom && cases[swappedCaseFrom] && (
+                  <div style={{ fontSize: '0.8em', fontWeight: 'normal', marginBottom: '8px', color: '#fbbf24' }}>
+                    (Original Case #{swappedCaseFrom}: ${cases[swappedCaseFrom].cashValue?.toLocaleString?.()})
+                  </div>
+                )}
                 <button className="btn-inline" onClick={restartGame}>Play Again</button>
                 {bankerQuip && <div className="banker-quip">{bankerQuip}</div>}
               </div>
@@ -353,6 +439,20 @@ function App() {
                   <button className="btn-inline" onClick={acceptDeal}>Accept Deal</button>
                 </div>
                 {bankerQuip && <div className="banker-quip">{bankerQuip}</div>}
+              </div>
+            )}
+            {swapOffered && (
+              <div className="swap-banner">
+                <h3>Final Decision</h3>
+                {bankerQuip && <div className="banker-quip" style={{ marginBottom: '10px' }}>{bankerQuip}</div>}
+                <div className="swap-buttons">
+                  <button className="btn-swap" onClick={handleSwap}>
+                    Swap Case
+                  </button>
+                  <button className="btn-keep" onClick={handleKeep}>
+                    Keep Case {playerCaseNumber}
+                  </button>
+                </div>
               </div>
             )}
             {offerHistory.length > 0 && (
